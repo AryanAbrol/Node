@@ -9,4 +9,3 @@ fs.readFile('main.txt','utf-8',(err,txt)=>
 const t = fs.readFileSync('main.txt','utf-8');
 console.log(t);
 console.log("1");*/
-
