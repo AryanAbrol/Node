@@ -1,5 +1,9 @@
+require('dotenv').config();
+console.log(process.env.DB_PASSWORD);
 const fs = require('fs');
 const datajson = fs.readFileSync('data.json','utf-8');
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 // const data = JSON.parse(fs.readFileSync('data.json', 'utf-8'));
 // const products = data.products;
 
@@ -8,13 +12,34 @@ const datajson = fs.readFileSync('data.json','utf-8');
 // server.use('/api',productRouter)
 //  for using--> productRouter.get('/products',(req,res)=>{})
 //  for using with modules--> productRouter.get('/products', productRouter.createproduct) createproduct ek function hai jo module mein define hoga
+main().catch(err => console.log(err));
 
+async function main() {
+  await mongoose.connect('mongodb://127.0.0.1:27017/local');
+  console.log("database connected");
+}
 const express = require('express');
 // const morgan = require('morgan');
 const server = express();
 
 // body parser
 server.use(express.json());
+
+// schema for mongo
+
+  // title: String, // String is shorthand for {type: String}
+  // author: String,
+  // body: String,
+  // comments: [{ body: String, date: Date }],
+  // date: { type: Date, default: Date.now },
+  // hidden: Boolean,
+  // meta: {
+  //   votes: Number,
+  //   favs: Number
+  // }
+
+
+
 
 // server.use(express.static('folder name')); used for static hosting
 // server.use((req,res,next)=>{
@@ -83,36 +108,61 @@ server.use(express.json());
 // }
 // server.use(auth);
 
-server.get('/product/:id',auth,(req,res)=>
+const products = new Schema({
+  title: {type: String,required: true,unique: true},
+  description: String ,
+  price: Number,
+  discountPercentage: Number,
+  rating: {type: Number,min: [0,"put something"],max: [100,"it is ok"],required: true},
+  stock: Number,
+  brand: String ,
+  category: String,
+  thumbnail: String,
+  images: [String]
+});
+const Product = mongoose.model('product', products);
+server.get('/product/:id',/*auth,*/(req,res)=>
 {
   console.log(req.params)
   res.json({type: "GET"});
 })
 
-server.post('/',auth,(req,res)=>
-{
-  res.json({type: "POST"});
-})
+server.post('/', /*auth,*/ async (req, res) => {
+  try {
+    const product = new Product(req.body);
+    // product.title = "iphone";
+    // product.price = 9997;
+    // product.rating = 4.5;
+    const savedProduct = await product.save();
+    console.log({ doc: savedProduct });
+    res.json({ type: "POST", doc: savedProduct });
+  } catch (err) {
+    console.error({ err });
+    res.status(401).json({ error: "Internal Server Error" });
+  }
+});
 
-server.put('/',auth,(req,res)=>
+server.put('/',/*auth,*/(req,res)=>
 {
   res.json({type: "PUT"});
 })
 
-server.delete('/',auth,(req,res)=>
+server.delete('/',/*auth,*/(req,res)=>
 {
   res.json({type: "DELETE"});
 })
 
-server.patch('/',auth,(req,res)=>
+server.patch('/',/*auth,*/(req,res)=>
 {
   res.json({type: "PATCH"});
 })
 
 
 
-server.get('/',(req,res)=>
+server.get('/',async(req,res)=>
 {
+  const product = await Product.find();
+  res.json(product);
   // res.sendStatus(404);
   // res.status(201).send('<h1>hi</h1>')
   // res.json(datajson);
@@ -124,6 +174,6 @@ server.get('/',(req,res)=>
 
 
 
-server.listen(8080,()=>{
+server.listen(3000,()=>{
   console.log("server started");
 });
